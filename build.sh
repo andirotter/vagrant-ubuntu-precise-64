@@ -9,8 +9,10 @@ set -o errexit
 
 # Configurations
 BOX="ubuntu-precise-64"
-ISO_URL="http://releases.ubuntu.com/precise/ubuntu-12.04.1-alternate-amd64.iso"
-ISO_MD5="682b0388d2a15bf9f38480b0eb4653f6"
+ISO_URL="http://releases.ubuntu.com/precise/ubuntu-12.04.3-alternate-amd64.iso"
+ISO_MD5="ca4ecd32f1a4c6917c951f45395901ff"
+#ISO_URL="http://old-releases.ubuntu.com/releases/precise/ubuntu-12.04.1-alternate-amd64.iso"
+#ISO_MD5="682b0388d2a15bf9f38480b0eb4653f6"
 
 # location, location, location
 FOLDER_BASE=`pwd`
@@ -19,6 +21,7 @@ FOLDER_BUILD="${FOLDER_BASE}/build"
 FOLDER_VBOX="${FOLDER_BUILD}/vbox"
 FOLDER_ISO_CUSTOM="${FOLDER_BUILD}/iso/custom"
 FOLDER_ISO_INITRD="${FOLDER_BUILD}/iso/initrd"
+FOLDER_MOUNT="${FOLDER_BUILD}/iso/source"
 
 # start with a clean slate
 if [ -d "${FOLDER_BUILD}" ]; then
@@ -34,8 +37,10 @@ mkdir -p "${FOLDER_BUILD}"
 mkdir -p "${FOLDER_VBOX}"
 mkdir -p "${FOLDER_ISO_CUSTOM}"
 mkdir -p "${FOLDER_ISO_INITRD}"
+mkdir -p "${FOLDER_MOUNT}"
 
 ISO_FILENAME="${FOLDER_ISO}/`basename ${ISO_URL}`"
+#ISO_FILENAME="${FOLDER_ISO}/mini.iso"
 INITRD_FILENAME="${FOLDER_ISO}/initrd.gz"
 ISO_GUESTADDITIONS="/Applications/VirtualBox.app/Contents/MacOS/VBoxGuestAdditions.iso"
 
@@ -55,28 +60,20 @@ fi
 # customize it
 echo "Creating Custom ISO"
 if [ ! -e "${FOLDER_ISO}/custom.iso" ]; then
+ 
+  LINE=$(hdiutil attach ${ISO_FILENAME} -nomount | head -n 1)
+  read -a array <<< ${LINE}
+  DEV=${array[0]}
+  mount -t cd9660 "${DEV}" "${FOLDER_MOUNT}"
 
-  echo "Untarring downloaded ISO ..."
-  tar -C "${FOLDER_ISO_CUSTOM}" -xf "${ISO_FILENAME}"
+  # Copy contents
+  cp -a "${FOLDER_MOUNT}/" "${FOLDER_ISO_CUSTOM}"
+  chmod -R +w "${FOLDER_ISO_CUSTOM}"
 
-  # in osx lion 10.7.4, tar won't extract anything and will fail silently. If that happens, look for a newer version of bsd tar
-  if [ ! `ls $FOLDER_ISO_CUSTOM` ]; then
-      TAR_COMMAND=tar
-      if [ -x '/usr/local/bin/bsdtar' ];
-      then
-          LOCAL_BSD_TAR=/usr/local/bin/bsdtar
-      else
-          LOCAL_BSD_TAR=/usr/bin/bsdtar
-      fi
-      echo "tar failed to extract ISO, falling back to $LOCAL_BSD_TAR"
-      "${LOCAL_BSD_TAR}" -C "${FOLDER_ISO_CUSTOM}" -xf "${ISO_FILENAME}"
-  fi
-
-  # If that still didn't work, you have to update tar
-  if [ ! `ls $FOLDER_ISO_CUSTOM` ]; then
-    echo "Error with extracting the ISO file with your version of tar. Try updating to libarchive 3.0.4 (using e.g. the homebrew-dupes project)"
-    exit 1
-  fi
+  # Unmount Image
+  umount "${FOLDER_MOUNT}"
+  hdiutil detach "${DEV}"
+  rmdir "${FOLDER_MOUNT}"
 
   # backup initrd.gz
   echo "Backing up current init.rd ..."
@@ -195,9 +192,9 @@ if ! VBoxManage showvminfo "${BOX}" >/dev/null 2>/dev/null; then
   # get private key
   curl --output "${FOLDER_BUILD}/id_rsa" "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant"
   chmod 600 "${FOLDER_BUILD}/id_rsa"
-
+ 
   # install virtualbox guest additions
-  ssh -i "${FOLDER_BUILD}/id_rsa" -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 2222 vagrant@127.0.0.1 "sudo mount /dev/cdrom /media/cdrom; sudo sh /media/cdrom/VBoxLinuxAdditions.run; sudo umount /media/cdrom; sudo shutdown -h now"
+  ssh -i "${FOLDER_BUILD}/id_rsa" -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 2222 vagrant@127.0.0.1 "sudo mount /dev/cdrom /media/cdrom;sudo sh /media/cdrom/VBoxLinuxAdditions.run; sudo umount /media/cdrom; sudo shutdown -h now"
   echo -n "Waiting for machine to shut off "
   while VBoxManage list runningvms | grep "${BOX}" >/dev/null; do
     sleep 20
@@ -215,9 +212,10 @@ if ! VBoxManage showvminfo "${BOX}" >/dev/null 2>/dev/null; then
     --device 0 \
     --type dvddrive \
     --medium emptydrive
+
 fi
 
-echo "Building Vagrant Box ..."
+#echo "Building Vagrant Box ..."
 vagrant package --base "${BOX}"
 
 # references:

@@ -11,8 +11,6 @@ set -o errexit
 BOX="ubuntu-precise-64"
 ISO_URL="http://releases.ubuntu.com/precise/ubuntu-12.04.3-alternate-amd64.iso"
 ISO_MD5="ca4ecd32f1a4c6917c951f45395901ff"
-#ISO_URL="http://old-releases.ubuntu.com/releases/precise/ubuntu-12.04.1-alternate-amd64.iso"
-#ISO_MD5="682b0388d2a15bf9f38480b0eb4653f6"
 
 # location, location, location
 FOLDER_BASE=`pwd`
@@ -215,7 +213,7 @@ if ! VBoxManage showvminfo "${BOX}" >/dev/null 2>/dev/null; then
 
 fi
 
-#echo "Building Vagrant Box ..."
+echo "Building Vagrant Box ..."
 vagrant package --base "${BOX}"
 
 # references:

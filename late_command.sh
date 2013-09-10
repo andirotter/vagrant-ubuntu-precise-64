@@ -13,8 +13,11 @@ chown -R vagrant:vagrant /home/vagrant/.ssh
 # speed up ssh
 echo "UseDNS no" >> /etc/ssh/sshd_config
 
-# get chef
-gem install chef --no-rdoc --no-ri
+# get chef 10.16.6
+gem install net-ssh -v 2.2.2 --no-ri --no-rdoc
+gem install net-ssh-gateway -v 1.1.0 --no-ri --no-rdoc --ignore-dependencies
+gem install net-ssh-multi -v 1.1.0 --no-ri --no-rdoc --ignore-dependencies
+gem install chef --version 10.16.6 --no-ri --no-rdoc --conservative
 
 # display login promt after boot
 sed "s/quiet splash//" /etc/default/grub > /tmp/grub

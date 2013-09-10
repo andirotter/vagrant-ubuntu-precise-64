@@ -19,6 +19,14 @@ or, if you are on mountain lion
 
     brew install dvdrtools
 
+### Andi's notes
+
+ - Upgraded the script to download ubuntu-12.04.3-alternate-amd64
+ - replaced the iso extracting due tar/bsdtar, which caused trouble
+   on OSX Lion (see Jans notes) with the native OSX tool hdiutil
+
+ - added an workaround to keep chef 10 on the basebox instead of
+   updating to chef 11 (late_commands.sh) 
 
 ### Jan's notes
 
